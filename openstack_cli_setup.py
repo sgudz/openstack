@@ -118,6 +118,23 @@ def get_ingress_ip(kubectl_bin):
     ingress_ip = res.stdout.strip()
     return ingress_ip
 
+def check_openstack_installed(kubectl_bin):
+    env = os.environ.copy()
+    env["KUBECONFIG"] = str(KUBECONFIG_FILE.resolve())
+    res = run([kubectl_bin, "get", "osdpl", "-n", "openstack"], check=False, env=env, text=True, capture_output=True)
+    if "No resources found in openstack namespace" in res.stderr:
+        print(f"STDERR: {res.stderr}")
+        print("OpenStack is not installed")
+        return False
+    if "the server doesn't have a resource type" in res.stderr:
+        print(f"STDERR: {res.stderr}")
+        print(f"KUBECONFIG from child cluster should be used. Current kubeconfig path is: {env['KUBECONFIG']}")
+        return False
+    if res.returncode == 1:
+        print(f"ERROR:\n{res.stderr}")
+        return False
+    return True
+
 def get_clouds_yaml_from_client(kubectl_bin):
     if not KUBECONFIG_FILE.exists():
         print(f"❌ KUBECONFIG file {KUBECONFIG_FILE} does not exist")
@@ -171,6 +188,8 @@ def main():
     create_virtualenv()
     install_dependencies()
     kubectl_bin = install_kubectl()
+    if not check_openstack_installed(kubectl_bin):
+        return
     _, path = get_clouds_yaml_from_client(kubectl_bin)
     modify_hosts_file(kubectl_bin)
     init_openstack_client(kubectl_bin)
