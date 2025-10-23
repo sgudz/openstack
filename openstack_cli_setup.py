@@ -10,7 +10,12 @@ import shutil
 
 VENV_DIR = Path(".venv")
 REQUIREMENTS = Path("requirements.txt")
-KUBECONFIG_FILE = Path(os.getenv('KUBECONFIG'))
+try:
+    KUBECONFIG_FILE = Path(os.getenv('KUBECONFIG'))
+except TypeError:
+    print("❌ KUBECONFIG environment variable is not set")
+    print("export KUBECONFIG and rerun script")
+    sys.exit(1)
 
 def run(cmd, **kwargs):
     print(f"🟢 Running: {' '.join(cmd)}")
